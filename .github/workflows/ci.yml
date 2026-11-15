@@ -38,6 +38,13 @@ jobs:
       - name: Build macOS DMG
         if: inputs.platform == 'macos'
         run: npm run tauri build -- --bundles dmg
+      - name: Upload compiled Windows executable
+        uses: actions/upload-artifact@v4
+        if: always() && inputs.platform == 'windows'
+        with:
+          name: videoflow-windows-exe
+          path: src-tauri/target/release/mosuan-videoflow.exe
+          if-no-files-found: ignore
       - uses: actions/upload-artifact@v4
         if: success()
         with:
