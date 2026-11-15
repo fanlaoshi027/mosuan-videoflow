@@ -55,10 +55,10 @@ async function scanFolder() {
  if (!folder.value.trim()) { status.value = "请先输入文件夹完整路径"; return; }
  busy.value = true;
  try {
-  const rows = await invoke<Array<{name:string;path:string;size:number}>>("scan_folder", { folder: folder.value });
-  filenames.value = rows.map(x => x.name).join("\n");
+  const result = await invoke<{files:Array<{name:string;path:string;size:number}>;skipped:number;truncated:boolean}>("scan_folder", { folder: folder.value });
+  filenames.value = result.files.map(x => x.name).join("\n");
   page.value = 1;
-  status.value = "扫描完成：" + rows.length + " 个视频，仅读取基本文件属性";
+  status.value = "扫描完成：" + result.files.length + " 个视频" + (result.skipped ? "，跳过无法读取的条目 " + result.skipped + " 个" : "") + (result.truncated ? "；达到 100000 条上限，结果不完整" : "") + "；未打开视频内容";
  } catch (e) { status.value = "扫描失败：" + String(e); }
  finally { busy.value = false; }
 }
