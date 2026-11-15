@@ -23,3 +23,21 @@ export function previewRename(filename: string, catalog: CatalogRow[]): Preview 
   const suffix = row.question ? "_" + String(Number(row.question)).padStart(2, "0") : "";
   return { source: filename, target: page + suffix + "_" + name + m[3], status: "matched", detail: "仅预览，未修改原文件" };
 }
+
+/** Detect duplicate targets before any filesystem changes. */
+export function previewBatch(filenames: string[], catalog: CatalogRow[]): Preview[] {
+  const result = filenames.map(name => previewRename(name, catalog));
+  const counts = new Map<string, number>();
+  for (const item of result) {
+    if (!item.target) continue;
+    const key = item.target.normalize("NFC").toLocaleLowerCase("en-US");
+    counts.set(key, (counts.get(key) || 0) + 1);
+  }
+  return result.map(item => {
+    if (!item.target) return item;
+    const key = item.target.normalize("NFC").toLocaleLowerCase("en-US");
+    if ((counts.get(key) || 0) > 1)
+      return { source: item.source, status: "ambiguous", detail: "目标文件名重复，禁止批量执行" };
+    return item;
+  });
+}
