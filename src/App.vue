@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
 import { invoke } from "@tauri-apps/api/core";
-import { previewRename, type CatalogRow } from "./naming";
+import { previewBatch, type CatalogRow } from "./naming";
 import { catalogFromCsv } from "./catalogCsv";
 
 const course = ref("八上《大培优》");
@@ -15,7 +15,7 @@ const parsedCatalog = computed(() => {
  catch (e) { return { rows: [] as CatalogRow[], errors: [String(e)] }; }
 });
 const catalog = computed(() => parsedCatalog.value.rows);
-const previews = computed(() => filenames.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean).map(s => previewRename(s, catalog.value)));
+const previews = computed(() => previewBatch(filenames.value.split(/\r?\n/).map(s => s.trim()).filter(Boolean), catalog.value));
 
 async function importCsv(event: Event) {
  const input = event.target as HTMLInputElement;
