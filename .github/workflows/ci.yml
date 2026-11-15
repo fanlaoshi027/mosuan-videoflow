@@ -26,7 +26,17 @@ jobs:
       - run: npm install
       - run: npm test
       - run: npm run tauri icon assets/icon.svg
-      - run: npm run tauri build
+      - name: Verify generated Windows installer icon
+        if: inputs.platform == 'windows'
+        shell: pwsh
+        run: |
+          if (!(Test-Path 'src-tauri/icons/icon.ico')) { throw 'Missing src-tauri/icons/icon.ico' }
+      - name: Build Windows MSI
+        if: inputs.platform == 'windows'
+        run: npm run tauri build -- --bundles msi
+      - name: Build macOS DMG
+        if: inputs.platform == 'macos'
+        run: npm run tauri build -- --bundles dmg
       - uses: actions/upload-artifact@v4
         if: success()
         with:
