@@ -14,8 +14,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
-      - run: npm ci
+      - run: npm install
       - run: npm test
       - run: npm run build
   desktop:
@@ -29,9 +28,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: npm
       - uses: dtolnay/rust-toolchain@stable
-      - run: npm ci
+      - run: npm install
       - run: npm run tauri icon assets/icon.svg
       - run: npm run tauri build
       - uses: actions/upload-artifact@v4
