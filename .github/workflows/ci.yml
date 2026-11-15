@@ -1,7 +1,11 @@
 name: CI
 on:
   push:
+    branches: [main]
   pull_request:
+concurrency:
+  group: videoflow-ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   frontend:
     runs-on: ubuntu-latest
@@ -10,7 +14,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - run: npm install
+          cache: npm
+      - run: npm ci
       - run: npm test
       - run: npm run build
   desktop:
@@ -24,7 +29,17 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
       - uses: dtolnay/rust-toolchain@stable
-      - run: npm install
+      - run: npm ci
       - run: npm run tauri icon assets/icon.svg
       - run: npm run tauri build
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: videoflow-${{ matrix.os }}
+          path: |
+            src-tauri/target/release/bundle/**/*.msi
+            src-tauri/target/release/bundle/**/*.exe
+            src-tauri/target/release/bundle/**/*.dmg
+          if-no-files-found: warn
