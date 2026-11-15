@@ -31,6 +31,7 @@ jobs:
         shell: pwsh
         run: |
           if (!(Test-Path 'src-tauri/icons/icon.ico')) { throw 'Missing src-tauri/icons/icon.ico' }
+          Write-Host 'Windows installer icon found'
       - name: Build Windows MSI
         if: inputs.platform == 'windows'
         run: npm run tauri build -- --bundles msi
