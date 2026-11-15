@@ -16,6 +16,13 @@ struct FileEntry {
     size: u64,
 }
 
+#[derive(Serialize)]
+struct ScanResult {
+    files: Vec<FileEntry>,
+    skipped: usize,
+    truncated: bool,
+}
+
 fn db_path(app: &tauri::AppHandle) -> Result<PathBuf, String> {
     use tauri::Manager;
     let dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
@@ -69,27 +76,30 @@ fn load_catalog(app: tauri::AppHandle, course: String) -> Result<Vec<CatalogEntr
 
 // Read-only scan: only filenames and basic metadata; never opens video streams.
 #[tauri::command]
-async fn scan_folder(folder: String) -> Result<Vec<FileEntry>, String> {
+async fn scan_folder(folder: String) -> Result<ScanResult, String> {
     tauri::async_runtime::spawn_blocking(move || {
         let root = std::path::Path::new(&folder);
         if !root.is_dir() { return Err("文件夹不可访问（NAS 可能已断开）".into()); }
         let mut output = Vec::new();
+        let mut skipped = 0usize;
+        let mut truncated = false;
         let entries = std::fs::read_dir(root).map_err(|e| e.to_string())?;
         for item in entries {
-            let item = item.map_err(|e| e.to_string())?;
+            let item = match item { Ok(item) => item, Err(_) => { skipped += 1; continue; } };
             let path = item.path();
             let ext = path.extension().and_then(|x| x.to_str()).unwrap_or("").to_ascii_lowercase();
             if !["mp4", "mov", "mkv", "m4v", "avi"].contains(&ext.as_str()) { continue; }
-            let metadata = item.metadata().map_err(|e| e.to_string())?;
+            let metadata = match item.metadata() { Ok(meta) => meta, Err(_) => { skipped += 1; continue; } };
             if !metadata.is_file() { continue; }
             output.push(FileEntry {
                 name: item.file_name().to_string_lossy().into_owned(),
                 path: path.to_string_lossy().into_owned(),
                 size: metadata.len()
             });
-            if output.len() >= 100_000 { break; }
+            if output.len() >= 100_000 { truncated = true; break; }
         }
-        Ok(output)
+        output.sort_unstable_by(|a, b| a.name.cmp(&b.name));
+        Ok(ScanResult { files: output, skipped, truncated })
     }).await.map_err(|e| e.to_string())?
 }
 
